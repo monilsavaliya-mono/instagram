@@ -54,3 +54,4 @@ INSERT INTO messages (id, conversation_id, sender, direction, text, processed, t
 -- ===================== Seed automation log =====================
 INSERT INTO automation_log (conversation_id, event, created_at) VALUES
   ('rahul-001', 'Test environment seeded', '2026-08-29 03:12:10');
+
