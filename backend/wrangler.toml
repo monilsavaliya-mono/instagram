@@ -7,7 +7,7 @@ compatibility_date = "2024-09-23"
 # "https://YOUR_USERNAME.github.io"
 # Use "*" only for quick local testing - never for a real deployment.
 [vars]
-ALLOWED_ORIGIN = "*"
+ALLOWED_ORIGIN = "https://monilsavaliya-mono.github.io"
 
 [[d1_databases]]
 binding = "DB"
