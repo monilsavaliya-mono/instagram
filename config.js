@@ -7,5 +7,5 @@
 // This is the ONLY file you need to edit to point the static frontend
 // at your deployed backend.
 window.DM_LAB_CONFIG = {
-  API_BASE: "https://dm-automation-test-lab.YOUR-SUBDOMAIN.workers.dev",
+  API_BASE: "https://instagram.resourcesfresher.workers.dev",
 };
