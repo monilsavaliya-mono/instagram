@@ -12,4 +12,4 @@ ALLOWED_ORIGIN = "*"
 [[d1_databases]]
 binding = "DB"
 database_name = "dm_automation_test_lab"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "218e4c00-58f9-45e5-914d-a6efdf2d5f9b"
