@@ -10,4 +10,6 @@ class_name = "BrowserSession"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["BrowserSession"]
+# SQLite-backed storage class - required for Durable Objects on the free plan
+# (the classic new_classes key-value backend requires the paid plan).
+new_sqlite_classes = ["BrowserSession"]
