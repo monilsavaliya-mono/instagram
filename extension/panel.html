@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Browser Control</title>
+<link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+  <div class="panel">
+    <div class="brand">
+      <span class="logo">BC</span>
+      <h1>Browser Control</h1>
+    </div>
+
+    <span id="status-pill" class="status-pill unconfigured">
+      <span class="status-dot"></span>
+      <span id="status-text">CHECKING...</span>
+    </span>
+
+    <p class="hint">
+      An external tool holding the API key below can read and interact with
+      your browser tabs through the relay you deploy. Anyone with this key
+      can control this browser while connected - treat it like a password.
+    </p>
+
+    <div class="field">
+      <label for="relayUrl">Relay URL</label>
+      <div class="key-row">
+        <input type="text" id="relayUrl" class="glass-input" placeholder="https://your-relay.workers.dev" />
+        <button type="button" id="pasteRelayUrl" class="icon-btn" title="Paste from clipboard">📋</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="apiKey">API Key</label>
+      <div class="key-row">
+        <input type="password" id="apiKey" class="glass-input" placeholder="a long random secret you choose" />
+        <button type="button" id="pasteApiKey" class="icon-btn" title="Paste from clipboard">📋</button>
+        <button type="button" id="toggleApiKey" class="icon-btn" title="Show/hide">👁</button>
+      </div>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="allowEval" />
+      <span>Allow EVAL (arbitrary JS execution on pages) - leave off unless you specifically need it</span>
+    </label>
+
+    <button id="save" class="primary-btn">Save &amp; Connect</button>
+    <div id="feedback" class="feedback"></div>
+
+    <div class="footer-note">Not affiliated with any site this browser visits.</div>
+  </div>
+
+  <script src="dist/panel.js"></script>
+</body>
+</html>

@@ -90,7 +90,9 @@ npm run build
 Then in Chrome: `chrome://extensions` → enable **Developer mode** → **Load
 unpacked** → select the `extension/` folder.
 
-Click the extension's **Details → Extension options**, and enter:
+Pin it (puzzle-piece icon in the toolbar → pin) and click its icon to open
+the settings popup directly - no need to go through `chrome://extensions →
+Details` each time. Paste in (each field has a 📋 paste button):
 - **Relay URL**: the Worker URL from step 2
 - **API key**: the same string you picked in step 2
 - **Allow EVAL**: leave unchecked unless you specifically need arbitrary JS execution

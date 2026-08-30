@@ -16,8 +16,9 @@
       "run_at": "document_idle"
     }
   ],
-  "options_page": "options.html",
+  "options_page": "panel.html?page=1",
   "action": {
-    "default_title": "Browser Control Gateway - click Settings (via chrome://extensions) to configure"
+    "default_title": "Browser Control - click to configure",
+    "default_popup": "panel.html"
   }
 }

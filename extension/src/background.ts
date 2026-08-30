@@ -209,4 +209,14 @@ chrome.storage.onChanged.addListener((changes) => {
   }
 });
 
+// Lets the settings panel show real connection state instead of guessing
+// from the toolbar badge (which the panel can't read back).
+chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, sendResponse) => {
+  if (message?.type === "GET_CONNECTION_STATE") {
+    sendResponse({ connected: socket?.readyState === WebSocket.OPEN });
+    return true;
+  }
+  return false;
+});
+
 void connect();

@@ -3,7 +3,7 @@ import * as esbuild from "esbuild";
 const watch = process.argv.includes("--watch");
 
 const options = {
-  entryPoints: ["src/background.ts", "src/content.ts", "src/options.ts"],
+  entryPoints: ["src/background.ts", "src/content.ts", "src/panel.ts"],
   outdir: "dist",
   bundle: true,
   format: "iife",

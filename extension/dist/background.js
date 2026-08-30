@@ -164,6 +164,13 @@
       void connect();
     }
   });
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "GET_CONNECTION_STATE") {
+      sendResponse({ connected: socket?.readyState === WebSocket.OPEN });
+      return true;
+    }
+    return false;
+  });
   void connect();
 })();
 //# sourceMappingURL=background.js.map
