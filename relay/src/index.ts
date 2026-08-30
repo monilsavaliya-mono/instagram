@@ -1,8 +1,30 @@
+import type { ElementTarget, Op } from "@browser-control/shared";
+
 export { BrowserSession } from "./session";
 
 export interface Env {
   SESSIONS: DurableObjectNamespace;
 }
+
+// Flat, single-purpose REST routes over the same execute() logic as
+// /v1/execute - one clean path per op with a plain (non-discriminated-union)
+// request body, because that is what OpenAPI-driven tool callers (ChatGPT
+// Custom GPT Actions, most agent frameworks that import an OpenAPI spec)
+// work best against. /v1/execute stays as the generic form the agent/ and
+// mcp-server/ packages use directly.
+const OP_ROUTES: Record<string, (body: Record<string, unknown>) => Op> = {
+  "read-tree": () => ({ op: "READ_TREE" }),
+  click: (b) => ({ op: "CLICK", target: b.target as ElementTarget }),
+  hover: (b) => ({ op: "HOVER", target: b.target as ElementTarget }),
+  "scroll-into-view": (b) => ({ op: "SCROLL_INTO_VIEW", target: b.target as ElementTarget }),
+  type: (b) => ({ op: "TYPE", target: b.target as ElementTarget, text: b.text as string, clearFirst: b.clearFirst as boolean | undefined }),
+  "select-option": (b) => ({ op: "SELECT_OPTION", target: b.target as ElementTarget, value: b.value as string }),
+  "key-press": (b) => ({ op: "KEY_PRESS", key: b.key as string, target: b.target as ElementTarget | undefined }),
+  navigate: (b) => ({ op: "NAVIGATE", url: b.url as string }),
+  "wait-for-selector": (b) => ({ op: "WAIT_FOR_SELECTOR", target: b.target as ElementTarget, timeoutMs: b.timeoutMs as number | undefined }),
+  extract: (b) => ({ op: "EXTRACT", schema: b.schema as Record<string, string> }),
+  eval: (b) => ({ op: "EVAL", code: b.code as string }),
+};
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +96,26 @@ export default {
 
       if (url.pathname === "/v1/status" && request.method === "GET") {
         const forwarded = new Request(new URL("/status", "https://do/"));
+        return withCors(await stub.fetch(forwarded));
+      }
+
+      const opsMatch = url.pathname.match(/^\/v1\/ops\/([a-z-]+)$/);
+      if (opsMatch && request.method === "POST") {
+        const buildOp = OP_ROUTES[opsMatch[1]];
+        if (!buildOp) {
+          return withCors(Response.json({ ok: false, error: `unknown op route "${opsMatch[1]}"` }, { status: 404 }));
+        }
+        let body: Record<string, unknown>;
+        try {
+          body = (await request.json()) as Record<string, unknown>;
+        } catch {
+          return withCors(Response.json({ ok: false, error: "invalid JSON body" }, { status: 400 }));
+        }
+        const forwarded = new Request(new URL("/execute", "https://do/"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: buildOp(body), timeoutMs: body.timeoutMs }),
+        });
         return withCors(await stub.fetch(forwarded));
       }
 

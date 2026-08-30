@@ -1,0 +1,246 @@
+openapi: 3.1.0
+info:
+  title: Browser Control
+  version: "0.1.0"
+  description: >
+    Drive a real, user-authorized browser tab: read the page as a simplified
+    element tree, click, type, navigate, and extract text. Backed by a
+    browser extension the user installed and connected themselves - this API
+    only works while that extension shows a live "connected" status.
+    Import this file into an OpenAI Custom GPT's Actions (or any other tool
+    that consumes an OpenAPI spec to define callable actions), then set the
+    Authentication type to "API Key" / "Bearer" and paste in the API key
+    configured in the browser extension's options page.
+servers:
+  - url: https://REPLACE-WITH-YOUR-RELAY.workers.dev/v1
+    description: Replace with your own deployed relay URL (see README.md)
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ElementTarget:
+      type: object
+      required: [strategy, value]
+      properties:
+        strategy:
+          type: string
+          enum: [css, xpath, text, role, aiIndex]
+          description: >
+            How to locate the element. Prefer "aiIndex" using the index from
+            the most recent readTree call - it's far more reliable than
+            guessing a CSS selector.
+        value:
+          type: string
+    OpResult:
+      type: object
+      properties:
+        id: { type: string }
+        ok: { type: boolean }
+        error: { type: string }
+        data: {}
+paths:
+  /status:
+    get:
+      operationId: getStatus
+      summary: Check whether a browser extension is currently connected.
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected: { type: boolean }
+                  connectedAt: { type: [number, "null"] }
+                  pendingCount: { type: number }
+  /ops/read-tree:
+    post:
+      operationId: readTree
+      summary: >
+        Read the current page as a simplified tree of interactable elements
+        and text content (chat messages, buttons, links, form fields), each
+        with a stable aiIndex. Call this first on any new page, and again
+        after any action that might have changed the page.
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: {} }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/click:
+    post:
+      operationId: click
+      summary: Click an element (buttons, links, checkboxes, etc.).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target: { $ref: "#/components/schemas/ElementTarget" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/hover:
+    post:
+      operationId: hover
+      summary: Hover over an element - for menus or tooltips that only appear on hover.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target: { $ref: "#/components/schemas/ElementTarget" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/scroll-into-view:
+    post:
+      operationId: scrollIntoView
+      summary: >
+        Scroll an element into view without clicking it. Use this to page
+        through chat history that lazy-loads older messages on scroll, then
+        call readTree or extract again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target: { $ref: "#/components/schemas/ElementTarget" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/type:
+    post:
+      operationId: typeText
+      summary: Type text into an input, textarea, or contenteditable element.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target, text]
+              properties:
+                target: { $ref: "#/components/schemas/ElementTarget" }
+                text: { type: string }
+                clearFirst:
+                  type: boolean
+                  description: Clear the field's existing content before typing.
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/select-option:
+    post:
+      operationId: selectOption
+      summary: Select an option in a native <select> dropdown by its value.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target, value]
+              properties:
+                target: { $ref: "#/components/schemas/ElementTarget" }
+                value: { type: string }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/key-press:
+    post:
+      operationId: keyPress
+      summary: >
+        Send a single key press (e.g. "Enter", "Escape") to an element, or
+        the currently focused element if no target is given.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key: { type: string }
+                target: { $ref: "#/components/schemas/ElementTarget" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/navigate:
+    post:
+      operationId: navigate
+      summary: Navigate the active tab to a URL and wait for the page to finish loading.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/wait-for-selector:
+    post:
+      operationId: waitForSelector
+      summary: Wait until an element matching the target appears and is visible.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target: { $ref: "#/components/schemas/ElementTarget" }
+                timeoutMs: { type: number }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/extract:
+    post:
+      operationId: extract
+      summary: >
+        Extract structured text from the page. Pass a map of field name to
+        CSS selector; each field returns an array of every matching
+        element's text (e.g. {"messages": ".chat-message"} returns every
+        chat bubble's text). Good for pulling chat history in bulk.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schema]
+              properties:
+                schema:
+                  type: object
+                  additionalProperties: { type: string }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }
+  /ops/eval:
+    post:
+      operationId: evalJs
+      summary: >
+        Run arbitrary JavaScript in the page's own context and return the
+        result. The user's extension may have this disabled by default -
+        expect a clear error in that case. Prefer the other operations when
+        they can do the job.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OpResult" } } } }

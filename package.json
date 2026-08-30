@@ -6,7 +6,8 @@
     "shared",
     "relay",
     "extension",
-    "agent"
+    "agent",
+    "mcp-server"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
@@ -14,6 +15,7 @@
     "relay:dev": "npm run dev -w relay",
     "relay:deploy": "npm run deploy -w relay",
     "extension:build": "npm run build -w extension",
-    "agent": "npm run start -w agent --"
+    "agent": "npm run start -w agent --",
+    "mcp-server": "npm run start -w mcp-server"
   }
 }

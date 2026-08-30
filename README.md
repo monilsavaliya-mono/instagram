@@ -36,6 +36,12 @@ Natural-language task
                format can only drift in one place.
 ```
 
+`agent/` is one caller of the relay's API - `mcp-server/` (for Claude Code /
+Claude Desktop) and `integrations/openapi.yaml` (for ChatGPT or any other
+OpenAPI-consuming tool) are alternative "brains" against the exact same
+relay and extension, no changes needed to either. See "Connecting a chat AI
+directly" below.
+
 ## Setup
 
 ### 1. Install dependencies
@@ -48,13 +54,27 @@ npm install
 
 ### 2. Deploy the relay (Cloudflare Workers, free tier)
 
+**Option A - Cloudflare dashboard (no local CLI needed):**
+
+1. dash.cloudflare.com → **Workers & Pages → Create → Import a repository** → select this repo
+2. **Build command**: leave empty
+3. **Deploy command**: `npx -y wrangler deploy --config relay/wrangler.toml`
+4. **Deploy**
+
+**Option B - local CLI:**
+
 ```bash
 cd relay
 npx wrangler login
 npx wrangler deploy
 ```
 
-Wrangler prints your relay's URL, e.g. `https://browser-control-relay.YOUR-SUBDOMAIN.workers.dev`.
+Either way you get a URL like `https://browser-control-relay.YOUR-SUBDOMAIN.workers.dev`.
+
+> If the deploy fails with `code: 10097` ("must create a namespace using a
+> new_sqlite_classes migration"), that's Cloudflare's free-plan requirement
+> for Durable Objects - already handled in `relay/wrangler.toml`, so this
+> only bites if you're editing the migration yourself.
 
 Pick a long random string as your API key right now (e.g. `openssl rand -hex 32`)
 — it authenticates both the extension and every external caller. Treat it
@@ -96,6 +116,64 @@ it did. A task that doesn't need the browser at all ("summarize this text: ...")
 just gets answered directly — Claude only reaches for a browser tool when the
 task actually needs one.
 
+## Connecting a chat AI directly (instead of the CLI agent)
+
+The CLI agent above already **is** a chat-driven agent - it's just invoked
+from a terminal line instead of a chat bubble. If you want to talk to it from
+an actual chat interface instead, there are two ways in, covering both the
+Anthropic ecosystem and everything else:
+
+### Claude Code / Claude Desktop (MCP)
+
+`mcp-server/` is a standard MCP server exposing the same operations as tools
+(`browse_read_tree`, `browse_click`, etc.) over stdio - the way Claude Code
+and Claude Desktop connect to external tools natively. It runs *locally* (it
+needs to reach your relay over the internet, same as the CLI agent), so this
+is for a **local** Claude Code/Desktop install, not the hosted Claude.ai web
+app (which would need a separately-hosted remote MCP server - out of scope
+here).
+
+Add this to your project's `.mcp.json` (create it at the repo root if it
+doesn't exist):
+
+```json
+{
+  "mcpServers": {
+    "browser-control": {
+      "command": "npx",
+      "args": ["tsx", "mcp-server/src/index.ts"],
+      "env": {
+        "BROWSER_RELAY_URL": "https://browser-control-relay.YOUR-SUBDOMAIN.workers.dev",
+        "BROWSER_API_KEY": "<the same key from step 2>"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Code, then just chat: "open youtube and play X" - it'll call
+the tools itself. (`claude mcp add` is also available as a CLI shortcut for
+the same thing; run `claude mcp add --help` for its current flags rather
+than trusting this README to have them exactly right.)
+
+### ChatGPT, or any other OpenAPI-consuming AI gateway
+
+`integrations/openapi.yaml` describes the relay's REST API as a standard
+OpenAPI 3.1 spec - one clean operation per browser action
+(`click`, `typeText`, `readTree`, ...), Bearer-authenticated. This is the
+portable format most non-Anthropic tools expect for "call this API as a
+tool."
+
+For a ChatGPT Custom GPT:
+1. Edit the `servers.url` in `integrations/openapi.yaml` to your relay URL (or push the edit and use the raw GitHub URL)
+2. chat.openai.com → **Explore GPTs → Create → Configure → Add actions → Import from URL** (or paste the YAML directly)
+3. **Authentication → API Key → Bearer**, paste your relay API key
+4. Test it in the preview pane: "open youtube.com and search for lofi hip hop"
+
+Any other framework that can import an OpenAPI spec as callable tools
+(LangChain's OpenAPI toolkit, Zapier AI Actions, a custom agent loop you
+write yourself) works the same way against this same file.
+
 ## What it can actually do (and can't)
 
 - **Reading chat/message pages**: `browse_read_tree` and `browse_extract`
@@ -116,11 +194,14 @@ task actually needs one.
 ## Repository layout
 
 ```
-shared/       Instruction-set (ISA) types shared by every layer
-relay/        Cloudflare Worker + Durable Object
-extension/    Chrome MV3 extension (background + content script + options page)
-agent/        Node/TS CLI - Claude Opus 5 + Tool Runner over the relay's API
-docs/         Architecture and design notes
+shared/         Instruction-set (ISA) types shared by every layer
+relay/          Cloudflare Worker + Durable Object
+extension/      Chrome MV3 extension (background + content script + options page)
+agent/          Node/TS CLI - Claude Opus 5 + Tool Runner over the relay's API
+mcp-server/     MCP server (stdio) for Claude Code / Claude Desktop
+integrations/   openapi.yaml - for ChatGPT Custom GPT Actions or any other
+                OpenAPI-consuming AI gateway
+docs/           Architecture and design notes
 ```
 
 ## Known limitations (MVP)
