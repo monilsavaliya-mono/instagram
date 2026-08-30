@@ -1,6 +1,9 @@
 node_modules/
-dist/
+relay/dist/
 .wrangler/
 *.log
 .DS_Store
 .env
+
+# extension/dist IS committed on purpose: Chrome's "Load unpacked" needs the
+# built .js files present with no build step required on the user's machine.
