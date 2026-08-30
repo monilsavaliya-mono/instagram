@@ -1,0 +1,19 @@
+{
+  "name": "browser-control",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "relay",
+    "extension",
+    "agent"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "relay:dev": "npm run dev -w relay",
+    "relay:deploy": "npm run deploy -w relay",
+    "extension:build": "npm run build -w extension",
+    "agent": "npm run start -w agent --"
+  }
+}
